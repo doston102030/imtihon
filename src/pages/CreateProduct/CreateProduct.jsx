@@ -1,23 +1,38 @@
-import React, { useState } from 'react'
-import { Form, Button, Panel } from 'rsuite'
-import { useProductStore } from '../../store/useProductStore'
-import { useNavigate } from 'react-router-dom'
+import { Card, Heading, Text, Form, Button, useToaster, Message } from 'rsuite'
+import { useState } from 'react'
+import useProduct from '../../store/useStore'
 
-function CreateProduct() {
-  const addProduct = useProductStore(state => state.addProduct)
-  const navigate = useNavigate()
+const CreateProduct = () => {
+  const addProduct = useProduct(state => state.addProduct)
+  const toaster = useToaster()
 
-  // Oddiy state ma'lumotlar uchun
   const [formValue, setFormValue] = useState({
     title: '',
     description: '',
     price: '',
   })
 
+  const [errors, setErrors] = useState({})
+
+  const showMessage = (type, text) => {
+    toaster.push(
+      <Message showIcon type={type} closable>
+        {text}
+      </Message>,
+      { placement: 'topEnd' }
+    )
+  }
+
   const handleSubmit = () => {
-    // Agar maydonlar bo'sh bo'lsa, davom etmaymiz
-    if (!formValue.title || !formValue.price) {
-      alert('Iltimos, nom va narxni kiriting!')
+    const newErrors = {}
+
+    if (!formValue.title) newErrors.title = 'Title majburiy'
+    if (!formValue.description) newErrors.description = 'Description majburiy'
+    if (!formValue.price) newErrors.price = 'Price majburiy'
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      showMessage('error', 'Iltimos, barcha maydonlarni to‘ldiring!')
       return
     }
 
@@ -25,43 +40,85 @@ function CreateProduct() {
       id: Date.now(),
       title: formValue.title,
       description: formValue.description,
-      price: formValue.price,
+      price: Number(formValue.price),
     }
 
     addProduct(newProduct)
-    navigate('/products') // Ro'yxat sahifasiga o'tish
+
+    const oldProducts = JSON.parse(localStorage.getItem('products')) || []
+    const updatedProducts = [...oldProducts, newProduct]
+    localStorage.setItem('products', JSON.stringify(updatedProducts))
+
+
+    showMessage('success', 'Mahsulot muvaffaqiyatli qo‘shildi!')
+
+    setErrors({})
+    setFormValue({
+      title: '',
+      description: '',
+      price: '',
+    })
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <Panel
-        header={<h3>Yangi mahsulot</h3>}
-        bordered
-        style={{ maxWidth: 400, margin: 'auto', background: '#fff' }}
-      >
-        <Form fluid onChange={setFormValue} formValue={formValue}>
-          <Form.Group>
-            <Form.ControlLabel>Nomi</Form.ControlLabel>
-            <Form.Control name="title" />
-          </Form.Group>
+    <div style={wrapperStyle}>
+      <Card width={400} shaded size="lg">
+        <Card.Header>
+          <Heading level={4}>Create product</Heading>
+          <Text muted>Yangi product qoshing</Text>
+        </Card.Header>
 
-          <Form.Group>
-            <Form.ControlLabel>Tavsif</Form.ControlLabel>
-            <Form.Control name="description" rows={3} accepter="textarea" />
-          </Form.Group>
+        <Card.Body>
+          <Form
+            fluid
+            formValue={formValue}
+            onChange={val => {
+              setFormValue(val)
+              setErrors({})
+            }}
+            onSubmit={handleSubmit}
+            id="product-form"
+          >
+            <Form.Group>
+              <Form.ControlLabel>Title</Form.ControlLabel>
+              <Form.Control name="title" errorMessage={errors.title} />
+            </Form.Group>
 
-          <Form.Group>
-            <Form.ControlLabel>Narxi</Form.ControlLabel>
-            <Form.Control name="price" type="number" />
-          </Form.Group>
+            <Form.Group>
+              <Form.ControlLabel>Description</Form.ControlLabel>
+              <Form.Control
+                name="description"
+                errorMessage={errors.description}
+              />
+            </Form.Group>
 
-          <Button appearance="primary" block onClick={handleSubmit}>
-            Saqlash
+            <Form.Group>
+              <Form.ControlLabel>Price</Form.ControlLabel>
+              <Form.Control
+                name="price"
+                type="number"
+                errorMessage={errors.price}
+              />
+            </Form.Group>
+          </Form>
+        </Card.Body>
+
+        <Card.Footer>
+          <Button appearance="primary" type="submit" form="product-form">
+            Create
           </Button>
-        </Form>
-      </Panel>
+          <Button appearance="subtle">Cancel</Button>
+        </Card.Footer>
+      </Card>
     </div>
   )
+}
+
+const wrapperStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
 }
 
 export default CreateProduct

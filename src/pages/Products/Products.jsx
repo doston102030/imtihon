@@ -1,17 +1,38 @@
-import { Table, Button } from 'rsuite'
-import { useProductStore } from '../../store/useProductStore'
+import { Table, Button, useToaster, Message, IconButton, Stack } from 'rsuite';
+import useProduct from '../../store/useStore';
+import TrashIcon from '@rsuite/icons/Trash';
 
-const { Column, HeaderCell, Cell } = Table
+const { Column, HeaderCell, Cell } = Table;
 
 const Products = () => {
-  const products = useProductStore(state => state.products)
-  const removeProduct = useProductStore(state => state.removeProduct)
+  const products = useProduct(state => state.products);
+  const removeProduct = useProduct(state => state.removeProduct);
+  const toaster = useToaster();
+
+  const handleDelete = id => {
+    removeProduct(id);
+    toaster.push(
+      <Message showIcon type="info" closable>Mahsulot ochirildi</Message>,
+      { placement: 'topEnd' }
+    );
+  };
+
+  if (products.length === 0) {
+    return (
+      <div style={emptyCenterStyle}>
+        <Stack direction="column" alignItems="center" spacing={20}>
+          <Message type="info" showIcon style={{ fontSize: 18, padding: '20px 40px' }}>
+            Hozircha mahsulotlar yo‘q.
+          </Message>
+        </Stack>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '20px', width: '100%' }}>
-      <h3 style={{ marginBottom: '20px' }}>Barcha mahsulotlar</h3>
-
-      {/* Jadval to'liq kenglikda (autoHeight) va scroll-siz */}
+    <div style={containerStyle}>
+      <h2 style={{ marginBottom: 25, fontWeight: 'bold' }}>Mahsulotlar Ro'yxati</h2>
+      
       <Table
         autoHeight
         data={products}
@@ -19,56 +40,63 @@ const Products = () => {
         cellBordered
         headerHeight={50}
         rowHeight={60}
-        style={{ width: '100%' }} // Jadvalni to'liq yoyish
+        hover
+        style={{ width: '100%', borderRadius: 10 }}
       >
-        {/* ID ustuni - kichik va aniq o'lchamda */}
-        <Column width={80} align="center">
+        <Column width={70} align="center" fixed>
           <HeaderCell>Id</HeaderCell>
-          <Cell dataKey="id" />
+          <Cell>{(rowData, rowIndex) => rowIndex + 1}</Cell>
         </Column>
 
-        {/* Nomi ustuni - flexGrow orqali kengayadi */}
-        <Column flexGrow={1} minWidth={150}>
+        <Column flexGrow={2}>
           <HeaderCell>Mahsulot nomi</HeaderCell>
-          <Cell dataKey="title" style={{ fontWeight: 'bold' }} />
+          <Cell dataKey="title" />
         </Column>
 
-        {/* Tavsif ustuni - eng ko'p joyni egallaydi */}
-        <Column flexGrow={2} minWidth={200}>
+        <Column flexGrow={3}>
           <HeaderCell>Tavsif</HeaderCell>
           <Cell dataKey="description" />
         </Column>
 
-        {/* Narx ustuni */}
-        <Column width={100} align="right">
+        <Column width={150} align="right">
           <HeaderCell>Narxi</HeaderCell>
-          <Cell>{rowData => <span>{rowData.price} $</span>}</Cell>
+          <Cell>{rowData => <b style={{ color: '#2980b9' }}>{rowData.price} $</b>}</Cell>
         </Column>
 
-        {/* Amallar ustuni */}
-        <Column width={100} align="center">
+        <Column width={100} align="center" fixed="right">
           <HeaderCell>Amallar</HeaderCell>
           <Cell>
             {rowData => (
-              <Button
-                appearance="link"
+              <IconButton
+                size="sm"
+                appearance="subtle"
                 color="red"
-                onClick={() => removeProduct(rowData.id)}
-              >
-                O'chirish
-              </Button>
+                icon={<TrashIcon />}
+                onClick={() => handleDelete(rowData.id)}
+              />
             )}
           </Cell>
         </Column>
       </Table>
-
-      {products.length === 0 && (
-        <div style={{ textAlign: 'center', marginTop: '30px', color: '#888' }}>
-          Mahsulotlar mavjud emas.
-        </div>
-      )}
     </div>
-  )
-}
+  );
+};
 
-export default Products
+
+const emptyCenterStyle = {
+  display: 'flex',
+  justifyContent: 'center', 
+  alignItems: 'center',     
+  height: '80vh',           
+  width: '100%'
+};
+
+const containerStyle = {
+  padding: '40px',
+  width: '100%',
+  maxWidth: '1200px',
+  margin: '0 auto',
+  overflowX: 'hidden'
+};
+
+export default Products;
